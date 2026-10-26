@@ -18,6 +18,11 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+// 0. 메인 루트 경로 (서버 상태 확인용)
+app.get('/', (req, res) => {
+  res.send('🚀 RoutineNote 백엔드 서버가 정상적으로 작동 중입니다!');
+});
+
 // 1. 오늘 루틴 목록 및 운동 일지 조회 API
 app.get('/api/workout/today', async (req, res) => {
   const userId = req.query.userId || 'testuser';
