@@ -7,20 +7,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MySQL 커넥션 풀 설정
+// MySQL 커넥션 풀 설정 (Aiven 전용 포트 및 SSL 강제)
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER || 'avnadmin',
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'defaultdb',
-  port: process.env.DB_PORT || 10710,
+  port: parseInt(process.env.DB_PORT, 10) || 10710,
+  connectTimeout: 20000, // 타임아웃 여유시간 20초 지정
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl: { rejectUnauthorized: false } // Aiven SSL 접속 허용 설정
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// 메인 상태 확인
+// 메인 루트 확인
 app.get('/', (req, res) => {
   res.send('🚀 RoutineNote API Server is Running!');
 });
@@ -31,7 +34,6 @@ app.get('/api/workout/today', async (req, res) => {
   const today = new Date().toISOString().split('T')[0];
 
   try {
-    // 1-1. WORKOUT_LOG 확인 및 없으면 자동 생성
     let [logs] = await pool.query(
       'SELECT * FROM WORKOUT_LOG WHERE user_id = ? AND workout_date = ?',
       [userId, today]
@@ -48,7 +50,6 @@ app.get('/api/workout/today', async (req, res) => {
       logId = logs[0].log_id;
     }
 
-    // 1-2. TODAY_ROUTINE_SELECTION 조회
     const [routines] = await pool.query(
       'SELECT selection_id, routine_type, routine_name, is_checked, confirmed_at FROM TODAY_ROUTINE_SELECTION WHERE log_id = ?',
       [logId]
